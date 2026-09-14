@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in Deployment Airlock does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found a way around the barrier — an upload or download that happened without the confirmation
+        it should have required? Please do not file it here: see
+        [SECURITY.md](https://github.com/modxkit/deployment-airlock/blob/main/SECURITY.md).
+  - type: input
+    id: ide
+    attributes:
+      label: IDE and version
+      description: From Help | About, e.g. "PhpStorm 2026.2.2, build PS-262.10315.130".
+    validations:
+      required: true
+  - type: input
+    id: airlock
+    attributes:
+      label: Airlock version
+      description: Settings | Plugins | Installed | Deployment Airlock.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      description: The agent or client connected to the IDE's MCP server, and its version.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Which tool the agent called, what it returned, and what the dialog showed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Audit log or idea.log excerpt
+      description: |
+        Help | Show Log in Finder (Show Log in Explorer on Windows). The audit log is under
+        modxkit-airlock/. Both name servers and paths — remove anything you would not publish.
+      render: text

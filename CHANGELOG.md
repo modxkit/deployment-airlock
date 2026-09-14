@@ -1,0 +1,406 @@
+# Changelog
+
+## [1.0.0] - 2026-09-14
+
+<!-- Change notes -->
+First release.
+
+- Deployment tools for AI agents in the IDE's built-in MCP server: list servers, build a plan,
+  upload it and follow its progress. Transfers use the Deployment configurations already set up in
+  the IDE; the agent never sees credentials.
+- A plan is built offline, fixed in writing and expires. Content fingerprints are checked again
+  right before the upload.
+- Uploads are confirmed by a person in an IDE dialog. Hosts you allow from that dialog may be
+  confirmed in the agent's terminal instead.
+- Three trust modes that lower the confirmation barrier, all off by default and set at the IDE
+  level only.
+- Limits on the servers and project directories the agent may use and on the number of files per
+  operation, set per IDE and per project; the stricter level wins.
+- Downloading changes from the server, off by default. Uncommitted local work is never overwritten
+  without a question.
+- A status bar widget that shows a weakened barrier, transfers in progress and a server still
+  locked after a timeout.
+- Exclude / Include in Deployment items in the Project view context menu.
+- An audit log of every transfer, and warnings about what Airlock does not control: the IDE's own
+  automatic upload and run configurations with an Upload step.
+<!-- Change notes end -->
+
+The notes below record the development history of the first release.
+
+### Added
+
+- Design specification (`docs/spec.md`): four MCP tools, offline deployment plan with TTL,
+  single-use and fingerprint, confirmation via MCP elicitation with an IDE dialog fallback,
+  upload-only transfers, audit log.
+- Project skeleton targeting PhpStorm 2026.2 with the bundled `com.intellij.mcpServer` and
+  `com.jetbrains.plugins.webDeployment` plugins.
+- Four MCP tools on the `com.intellij.mcpServer.mcpToolset` extension point:
+  `deployment_servers`, `deployment_plan`, `deployment_execute`, `deployment_status`.
+- `core/`: DTOs and structured error codes; `PlanStore` (TTL, single use, injectable clock);
+  `PolicyService` (per-operation file limit, protected servers, confirmation-channel choice);
+  `PlanService` (offline plan building, directory expansion, project-boundary checks including
+  symlink resolution, fingerprint verification before execute); `OperationRegistry`
+  (one active operation per server); `AuditService` (JSONL, daily rotation, retention).
+- `adapter/WebDeploymentAdapter`: server discovery, fully offline local → remote path
+  resolution, and upload through the platform's own `TransferTask`, with real transfer
+  failures reported rather than swallowed. The only package that imports
+  `com.jetbrains.plugins.webDeployment.*`.
+- `adapter/IdeWorkspace`: VFS refresh around planning and execution (YouTrack `IJPL-217676`),
+  VCS-changed-file discovery, directory expansion that does not descend into symlinks.
+- `confirm/ConfirmationService`: MCP elicitation in the agent's terminal with a mandatory
+  fallback to a modal IDE dialog that lists the plan in full; both channels fail closed.
+- `settings/`: project-level persistent settings and a **Settings | Tools | Deployment
+  Airlock** page (protected servers, IDE-modal enforcement, limits, host disclosure,
+  audit retention).
+- Audit-log retention runs on project open (`backgroundPostStartupActivity`), so it no longer
+  depends on which tools the agent happens to call.
+- An opt-in integration suite that runs the same `core/`/`adapter/` building blocks against a
+  real SFTP server (`docs/integration-testing.md`). It skips silently without credentials and
+  never runs as part of `test`, `check` or `build`.
+- A bound on how long Airlock waits for a transfer: `uploadTimeoutSeconds` (default 300, clamped
+  to 30..7200 even if the settings file is edited by hand), configurable on the settings page. On
+  expiry the operation ends as `failed` with a reason that states only what was verified — that
+  cancellation was requested and that the IDE's transfer may still be running — rather than
+  claiming it stopped, and the server stays reserved until the IDE restarts, because a second
+  deployment to a server that may still be mid-transfer is the race the one-operation-per-server
+  rule exists to prevent.
+
+- **Protected servers is a checklist of the project's servers**, not a name typed into a text
+  field. The list is built from public API only, and a typed name that matches nothing was the
+  first way this project failed open silently.
+
+- **The project's default deployment server is protected by a rule** (`alwaysProtectDefaultServer`,
+  the eighth setting, on by default — `docs/spec.md` §9). Out of the box `protectedServers` is
+  empty, so every confirmation went to the agent's terminal, and an elicitation form does not prove
+  a human is there (§8.1). The setting stores a rule rather than a name: the policy asks the
+  deployment port for the current default at check time, so protection follows a change of default
+  server on its own and survives a rename — the other half of the fail-open defect where protection
+  bound to a mutable name came off silently. When no single default server is visible — none set,
+  or the default is a group — the rule protects nobody, and a line under the checkbox says so,
+  because a ticked box that applies to no one otherwise looks like protection.
+
+- **An orphaned protected name is named to the agent**, not only on a settings page nobody reopens
+  after a rename. `ServersResult` gained a `warnings` list — an orphan is not a server, so
+  `ServerInfo` had nowhere to put it — and the same line goes into the plan's warnings, the other
+  place the agent always looks. It is a warning, not a refusal: a name with no server is a
+  legitimate state, since protection can be set up before the server is. Name comparison is now one
+  function in `core/` (`serverNameKey` / `sameServerName`); it used to live in three places, two of
+  which compared case differently.
+
+- **The agent can be limited to the paths a feature lives in** (`allowedPaths`, the ninth setting —
+  `docs/spec.md` §9). An extra restriction, absent by default, switched on by adding a path and off
+  by removing the last one. The check runs where the project boundary already runs and for the same
+  reason: lexically before directories are expanded, by real path afterwards — a symlink out of the
+  zone passes only the first — and a third time in `verifyBeforeExecute`, because the zone can be
+  narrowed while a person reads the plan. With `scope: "files"` a path outside the zone is refused
+  with `PATH_NOT_ALLOWED` and the text lists the allowed paths, so the agent can correct itself;
+  with `scope: "changed_files"`, which collects other people's edits too, the extra is dropped with
+  a warning. Paths are stored relative to the project root, because the settings file travels
+  through VCS to machines where the root differs. The settings control is a list with +/- and a
+  chooser rooted at the project directory, so a path outside the project cannot be picked at all.
+
+- **Airlock says out loud that the IDE also uploads by itself** (`docs/spec.md` §15). With the
+  IDE's own automatic upload on and external changes allowed, edits made outside the IDE — which is
+  exactly how an agent makes them — leave for the default server on their own: no plan, no
+  confirmation, no audit entry. Airlock can neither see that channel nor stop it; what changed is
+  that it is no longer silent. The port gained `autoUpload()`, and the "is it actually running"
+  condition is taken from the platform verbatim
+  (`AutoUploadComponent.getShouldBeListeningAndDefaultServers`), because a similar-looking
+  condition of our own would lie in both directions. The agent is told in the plan's warnings and
+  in `deployment_servers` whenever the upload listener is live; the person is told in the
+  confirmation modal, and only when external edits are the ones leaving — that is when the modal's
+  promise that nothing moves until you click is false in the literal sense.
+
+- **Settings live on two levels now, and the stricter level wins** (`docs/spec.md` §9). The
+  project's settings file sits in `.idea`, inside the project, and the platform picks up external
+  edits to storage files — so every weakening a project file can express is a weakening the agent
+  can grant itself. `AirlockAppSettings` lives in the IDE's own configuration, outside any project,
+  and the effective policy is `strictest(app, project)`, merged field by field because each field
+  has its own strict side: union for protected servers, OR for the two confirmation rules, min for
+  the file limit and the plan lifetime, AND for host exposure, max for audit retention,
+  intersection for the path zone, and the upload timeout taken from the project, because it is
+  about that project's network rather than about safety. `allowedPaths` became nullable in the
+  process: `null` means no restriction and an empty list means nothing is allowed, so two zones
+  that do not overlap no longer read as "the whole project" — which would have opened everything
+  exactly where both levels forbade everything. The IDE-level page is registered through
+  `applicationConfigurable` and the project page became its child, **Tools | Deployment Airlock |
+  Project Rules**, since two rows with the same name in the settings tree cannot be told apart. The
+  IDE-level page deliberately carries neither the protected-server list nor the path zone: outside
+  a project there is no server list and no directory tree, and a free-text field is what delivered
+  this project's first silent fail-open.
+
+- **Trust modes** (`docs/spec.md` §8.2): three ways to lower the confirmation barrier, all off by
+  default and all IDE-level only, because a project's own settings file lives inside the project
+  where an agent can edit it. "Allow don't ask again this session" adds a third button to the
+  confirmation dialog whose trust covers one server and dies with the project, with any settings
+  change, or on **Tools | Deployment Airlock: Revoke Session Trust**; "Never show the IDE dialog"
+  routes every confirmation to the agent's terminal, protected servers included, and refuses the
+  upload when that channel is unavailable rather than sending it silently; "Auto-approve" removes
+  the confirmation entirely while the plan, the allowed paths, the file limit, the fingerprints
+  and the audit log all still apply. Each path writes its own channel into the audit log
+  (`session_trust`, `terminal`, `auto_approve`), and an accept that granted trust is recorded as
+  `accept_trust`.
+
+- **Server groups are named for what they are** (`docs/spec.md` §15). Deployment servers can be
+  grouped in the IDE, and a group shares the name space with servers, so a plan aimed at a group
+  used to come back empty with `NO_MAPPING` and "no mapping on server 'X'" — the mapping was there,
+  the name was ambiguous — while a project whose default is a group was told "no default deployment
+  server is configured", which it was. `deployment_plan` now refuses with `SERVER_NOT_FOUND` and a
+  message that lists the group's servers so the agent can name one, `deployment_servers` warns
+  about a group default, a default naming nothing that exists, and any server unreachable because a
+  group carries its name, and an upload aimed at a group no longer claims the server vanished. A
+  group holding exactly one server still resolves to that server, as it always did.
+- **Downloading from the server** — two tools, `deployment_remote_changes` and `deployment_pull`,
+  and the guarantees that make them safe to hand an agent. The case they exist for is a code
+  generator that runs on the site: its output is on the server and nowhere else, and the only way
+  to work on it is to bring it back. Off by default, and the switch is IDE-level only, for the
+  same reason the trust modes are: it widens what the agent may write, and a project's settings
+  file lives inside the project where the agent can edit it.
+  - The comparison **is** the plan. `deployment_remote_changes` walks the server once and returns
+    what it found; `deployment_pull` takes it by id. A second walk would open a window where a
+    person confirms one list and a different one is downloaded.
+  - Compared by size by default — which cannot see a change that keeps a file's length, and the
+    answer says exactly that in its warnings rather than passing an approximate answer off as an
+    exact one. `verify: true` hashes both sides.
+  - Every local file the plan would overwrite is classified `absent` / `clean` / `dirty`, where
+    clean means "the overwrite is reversible" — a file outside VCS is dirty, and so is one with
+    unsaved editor changes. A plan touching anything dirty stops at a modal dialog with three
+    answers (download everything, skip the modified ones, cancel) that names what is at stake.
+    The audit log records which files with uncommitted changes were overwritten; nothing else
+    would ever know.
+  - `.idea`, `.git` and `.claude` are never a download target, whatever the server's mapping
+    says, and the check is on the resolved path so a symlink does not get around it. The path
+    zone and the project boundary apply in this direction too.
+  - The walk has a budget (`maxRemotePullEntries`, default 2000, shared between files and visited
+    directories) and says when it stopped early instead of returning a partial tree as a whole one.
+  - A failed network step is never passed off as a result: a walk no mapping covers answers with an
+    error rather than an empty list, a whole-batch hash failure is an error rather than "everything
+    changed", and a listing that stopped early during the pre-download re-check is an error, because
+    a file the walk never reached cannot be told apart from one that disappeared.
+  - The plan is re-checked twice: once before waking the human, and again after they answer, right
+    before the transfer — the dialog blocks and has no timeout of its own, so the gap is
+    human-length by construction. A file that gained uncommitted changes while the dialog was open
+    is refused, not overwritten: it was not part of what the user approved.
+
+- **A status bar widget.** One icon for the current state, a tooltip that names all of it, and a
+  click that opens the settings page. It exists for three things that were previously invisible
+  without opening something: that the confirmation barrier is weaker than default right now (a trust
+  mode other than "always ask", session trust granted, or the IDE's own automatic upload running);
+  that a transfer is in flight, and in which direction; and that a server is still locked after a
+  transfer timed out — that last one could previously only be discovered by being refused with
+  OPERATION_IN_PROGRESS on the next attempt. The icon shows whichever state matters most, the tooltip
+  lists everything true.
+
+- **The plugin's own icons.** A plugin icon for the Marketplace and the plugin list (a slanted "D"
+  carrying a rocket, in a violet-to-cyan gradient) replaces the template icon, and seven 16x16
+  status bar icons, with dark-theme pairs, replace the platform placeholders the widget used so far.
+  On high-density screens the status bar icon is the logo itself; on standard-density screens,
+  where the logo's detail does not survive 16 pixels, it is the logo's rocket alone, in outline.
+  Each state has its own colour, the rocket's flame shows only while a transfer is running, and the
+  switched-off state changes the drawing itself — a slash through the rocket at 1x, and the mark
+  without the rocket at all on retina — so "off", "downloading" and "server still locked after a
+  timeout" stay apart by shape, not only by colour. Three states — an upload, a
+  download, and both at once — still differ by colour alone; they are blue, green and purple.
+  Design notes and the reasons behind each choice: `docs/logo/README.md`.
+
+- **Confirm every download** (Settings | Tools | Deployment Airlock). Off by default, which keeps
+  the previous behaviour exactly: a download only asks about files with uncommitted changes, so a
+  plan of files the project does not have yet arrives silently. On, every download is confirmed
+  first — the same promise uploads have always made. It is the one download setting that lives at
+  both levels, because it is the one that tightens rather than loosens: a project may switch it on
+  and cannot switch off what the IDE level switched on. With it on, "overwrite uncommitted local
+  changes without asking" stops changing anything, and a plan with nothing dirty in it gets a
+  dialog with two answers instead of three — "skip the modified files" would skip nothing there.
+
+- **WebStorm 2026.2 compatibility**, confirmed by the Plugin Verifier (`WS-262.10315.144`:
+  Compatible, with the same two deprecated-API notes as on PhpStorm). The verification targets are
+  now declared in the build script instead of inherited: PhpStorm keeps exactly the set the Gradle
+  plugin picked by default (the latest release and EAP of each version since 262), and WebStorm is
+  checked on releases only. The UI and integration suites still run in PhpStorm.
+
+- **Instructions for the agent.** `AGENTS.template.md` is a section to copy into a project's
+  `AGENTS.md` or `CLAUDE.md`: deploy only through the `deployment_*` tools and never another way,
+  the order of calls in both directions, and what each refusal means. The README gained
+  "Connecting an agent": turning on the IDE's MCP server, auto-configuring the client, checking that
+  the tools are visible, and why the instructions are needed at all.
+
+- **Other ways to the server, named.** "What Airlock does not control" now lists the IDE's own MCP
+  tools that can reach a server around Airlock — `invoke_ide_action` in PhpStorm, which runs any
+  IDE action, the upload action included, and asks nobody; the terminal and run-configuration
+  tools, which ask as long as brave mode is off — and the agent's own shell. The agent instructions
+  template rules all of them out. A new README section, "Details worth knowing", covers how an agent
+  learns about the tools, the two Auto-Configure scopes, Exposed Tools and router-only mode, and
+  brave mode.
+
+- **The "Protected servers" dropdown is ordered and scrolls.** It lists every server the project
+  can see, and IDE-level servers are shared by all projects, so it used to be a long list in the
+  platform's own order that grew past the screen. Now the default server comes first, then the
+  servers this project has mappings for, then the rest, each group alphabetical regardless of case,
+  with names of servers that no longer exist last; the list scrolls after twelve rows and filters as
+  you type. Any server can still be protected.
+- **Room around the plan in both confirmation dialogs.** The lines above the file list and the total
+  below it no longer sit against the list's border.
+- **Warnings in both confirmation dialogs moved into a wrapping banner below the total.** They used
+  to sit inside the same scrollable text area as the file list, so a long warning — the plan's
+  automatic-upload warning included — could only be read by scrolling right. The banner is
+  `InlineBanner` and appears only when there is at least one warning; a plan with none looks
+  exactly as it did before. The send dialog used to also carry a separate, header-level
+  auto-upload notice next to the button; it duplicated the plan's own warning and was removed, so
+  the plan's warnings are now the one place that notice is said.
+- **The README explains protected servers.** Why the IDE dialog and the terminal form are not
+  equal, when a server counts as protected, a table of where each upload is confirmed, that "Always
+  confirm protected in the IDE" concerns protected servers only, and that the agent picks the target
+  server — any server with mappings in the project, not only the default one.
+- **Servers the agent may use.** A list on the project's settings page, first entry a rule that
+  follows the project default server. A server outside it is refused with `SERVER_NOT_ALLOWED` —
+  when a plan is built, when remote changes are listed, and again right before an upload or a
+  download, so narrowing the list while a plan waits takes effect. `deployment_servers` marks every
+  server `allowed` and warns about names that match no server. Both levels of settings apply; set
+  in the project, the list guards against the agent's mistakes, not against the agent.
+
+- **Exclude / Include in Deployment**, two Project view context menu items that add or remove the
+  selection from the IDE's own **Deployment | Excluded Paths** — the list that actually stops a
+  file from being uploaded, automatic upload included. Marking a directory `Excluded` through `Mark
+  Directory As` does not do this: the upload path never reads the project model. The main item
+  targets the project's default deployment server (every member, if the default is a group); a
+  second item, `…on All Servers`, targets every server configured in the project. Clicking again
+  removes the entry; a path covered only by a parent folder's exclusion leaves the item disabled,
+  naming the parent. This is the first and only place Airlock writes to the native deployment
+  settings, and it writes exactly one field — no MCP tool exposes it, so an agent cannot reach it
+  either.
+- License: the plugin is free and closed source, under the Deployment Airlock End User License
+  Agreement (`LICENSE`, adapted from the JetBrains Marketplace Standard EULA) instead of MIT; the
+  public repository carries documentation and the issue tracker only. `SECURITY.md` asks for
+  barrier bypasses to be reported privately; a GitHub issue form asks for IDE and Airlock versions.
+  `plugin.xml` names the vendor email.
+
+### Changed
+
+- **The status bar icon now carries two independent colours instead of one.** The surround — the
+  rocket's outline on a standard screen, the letter on Retina — shows the barrier/lock state; the
+  rocket and its flame show which direction is transferring. Before, one colour had to carry both,
+  and a transfer in progress hid a weakened barrier for its whole duration; the state colour no
+  longer disappears while a transfer runs.
+- **Documentation.** The README became a short overview with screenshots; setup (including turning
+  on the IDE's MCP server), a reference of every setting and how-it-works moved to `docs/guide/`.
+  The plugin description on the Marketplace and in the IDE's plugin list is now built from the
+  README's overview, so the two no longer drift apart; only its text changed.
+
+### Fixed
+
+- **The tool descriptions left out what an agent needs to use the tools correctly.**
+  `deployment_plan` now says that a plan is single-use and expires, and when to build a new one.
+  `deployment_execute` says that the call spends the plan even if the user declines, that it returns
+  without waiting unless the confirmation form is in the agent's terminal, which statuses to poll
+  for, and that a declined upload is the user's answer — not a reason to re-plan the same files or
+  to move them by other means. The download tools say the same for their direction.
+
+- **The plan's fingerprint could be forged.** It compared file size and modification stamp only,
+  and IntelliJ's VFS refresh decides whether to reload cached content from the same pair. An
+  external process that rewrote a file with a different payload of the same length and restored
+  the mtime with `touch -r` therefore passed verification, and the substituted content was
+  accepted for upload with no `PLAN_STALE`. The fingerprint now also carries a SHA-256 of the
+  file's bytes on disk — the same bytes the transfer streams to the server. Found by the
+  integration suite against a real server.
+- Coroutine cancellation now reaches the transfer: `WebDeploymentAdapter.upload` cancels the
+  platform's progress indicator instead of leaving the transfer running against a live server.
+- A `NO_MAPPING` failure now carries the warnings that explain it, so a file skipped because it
+  could not be read is no longer reported as a file with no deployment mapping.
+- **`deployment_status` now says why a file was skipped**, where the IDE itself knows. `skipped`
+  counted planned files that neither transferred nor failed, with nothing to separate "excluded by a
+  rule" — fine, nothing to do — from "the IDE considered it already up to date", which is not fine at
+  all: the IDE compares size exactly and modification time within the clock accuracy of both sides
+  (up to a minute on FTP), while Airlock's plans are built from SHA-256 hashes. A file whose content
+  differs at the same length and a near-identical timestamp is therefore skipped, the old content
+  stays on disk, and repeating the operation skips it again. The new `skippedUpToDate` names that
+  part of `skipped`, and `warnings` explains what it means; both numbers also reach the audit log,
+  which had recorded no skip counts at all.
+
+- **An upload could silently drop a file the person had confirmed.** "Excluded Paths" is one list
+  whose entries are each flagged local or remote, and the two lookups the platform offers read only
+  their own half. Building an upload plan asked about the local half only — the remote path is
+  computed after that check and nothing was asked about it — while the transfer itself checks both.
+  A file covered by a remote-flagged exclusion therefore entered the plan, was shown to the person
+  confirming it, and was then thrown away by the transfer, reaching the agent as a `skipped` count
+  with no reason. Both halves are now checked while the plan is built, so such a file is refused up
+  front with the exclusion named. Found while verifying the download-side half of the same split.
+- **The remote walk saw only half of "Excluded Paths".** The list is one list, but every entry is
+  flagged local or remote, and the platform's two lookups each read only their own half. The walk
+  asked about remote-flagged entries alone, so a locally excluded `vendor/` was descended into and
+  charged to the walk's entry budget — exhausting it, and reporting `truncated`, before any real
+  change was reached. Nothing was ever downloaded from such a directory (a layer above the walk
+  already refused it), so this cost coverage, not safety. Both halves are now checked before the
+  walk descends. Found by the branch review, confirmed against a real server.
+- **Any modal dialog left open in the IDE stalled Airlock until it was closed.** Every step Airlock
+  hands to the IDE's UI thread — starting an upload, walking the server, reading remote hashes,
+  starting a download — was queued for "when no modal dialog is open". With Settings or any other
+  modal dialog open, all four waited behind it and the operation ran into its timeout; a download the
+  person had just confirmed in Airlock's own dialog did not start until they closed Settings. The work
+  now runs in whatever modality is current when it is queued, so it proceeds under a dialog that is
+  already open and never jumps into one opened later. The review finding behind this was first
+  declared not reproducible: the tests that said so ran against a sandbox IDE still built with the
+  fix. Confirmed against a live IDE, once with the old behaviour and once with the fix, each on a
+  sandbox rebuilt from the code under test.
+- **Error codes never reached the agent at all.** `docs/spec.md` §11 promises a machine-readable
+  code with every failure, and every failure sent one — but the platform's MCP layer drops
+  `structuredContent` from an `isError` response entirely, so the client only ever saw the text.
+  The code now stands at the front of that text. `structuredContent` is still sent: it costs
+  nothing and starts working on its own if the platform is fixed.
+- **The IDE-level transfer timeout now applies.** It used to be ignored: a project's own value
+  always won, and every project has one. A project now uses the IDE-level timeout unless *Use a
+  project-specific transfer timeout* is ticked on its Project Rules page; a timeout a project had
+  already changed keeps applying.
+
+### Security
+
+- Fixes from the security audit of 2026-09-14:
+  - A project-level `allowedPaths` entry such as `core/..` no longer widens the IDE-level zone;
+    entries that climb out, are absolute or name the project root allow nothing.
+  - The real path of every planned file is checked before and after it is hashed, at planning
+    and again before upload, even without a zone; hashing reads only regular files and never
+    follows a link. The file limit is checked before any content is read.
+  - Session trust is bound to the server behind a name (id, host, port, root, SSH
+    configuration), and a grant voided by a settings change stays void.
+  - Transfer error texts no longer carry the server's host and port.
+  - File names, warnings and server names are shown with control and bidi characters escaped
+    in both confirmation channels.
+  - A failure or a cancelled call before confirmation no longer leaves a server reserved; the
+    pre-upload re-check is bounded by the transfer timeout.
+  - The status widget shows unconfirmed downloads, downloads that overwrite modified files and
+    protected servers confirmed outside the IDE as a weakened barrier.
+  - Run configurations with an Upload step before they start are named to the agent and shown by
+    the status widget: pressing Run uploads without a plan or a confirmation.
+  - Agent instruction files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursor`, `.codex`,
+    `.gemini`) are never a pull target, at any depth.
+  - A project may lengthen the transfer timeout but no longer shorten it below the IDE level.
+  - `scope: "changed_files"` skips VCS changes outside the project with a warning instead of
+    refusing the whole plan and printing their absolute paths.
+  - A download is confirmed or not by one decision, taken when `deployment_pull` is called; the
+    dialog no longer re-reads the settings, so the audit log cannot disagree with what the person
+    saw.
+  - A terminal confirmation counts only the JSON boolean `true`; any other answer is a refusal
+    marked `malformed` — in the audit log under "Never show the IDE dialog", and otherwise followed
+    by the IDE dialog.
+  - The upload confirmation dialog names its server in the title (`Upload to …`), like the
+    download dialog.
+  - Confirmation dialogs are shown one at a time per project: a second upload or download dialog
+    waits until the open one is answered instead of opening on top of it.
+  - A failure to write the audit log is shown as an IDE error notification, once per run of
+    failures, instead of only in `idea.log`; transfers still continue.
+  - An upload or a download whose deployment mapping changes after the last check — while the
+    IDE is still connecting — transfers nothing, instead of following the new mapping to a path
+    nobody confirmed.
+  - Every server is protected unless a person allowed its host for terminal confirmation, from
+    the IDE dialog; the list lives at the IDE level only. Renaming a server, writing its IP address
+    or another name of the same machine no longer lifts protection. A plan records the server it
+    was built for and is refused if that server changes before the transfer. The rule that
+    protects the project default server is now off by default.
+- The plan pins both what is transferred and where: the fingerprint covers a SHA-256 of the
+  file's content alongside its size and modification stamp, and the recorded remote path is
+  re-resolved before upload, so editing
+  `.idea/deployment.xml` between plan and execute fails `PLAN_STALE` instead of silently
+  redirecting a confirmed transfer.
+- The project name is sanitized before it reaches an audit file path, and the audit service
+  refuses to write outside its own log directory.
+- No deletes, ever: no `action` on a planned file, no `deletes` field, no `allowDeletes`
+  setting. Credentials are never returned to the agent; host and port are hidden by default.

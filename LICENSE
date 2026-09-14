@@ -1,0 +1,98 @@
+Deployment Airlock — End User License Agreement
+
+Version 1.0, 13 September 2026
+
+This End User License Agreement ("EULA") is concluded between You and the Developer with respect to
+the Plugin. The Developer is the licensor of the Plugin. JetBrains is not a party to this EULA. By
+installing or using the Plugin, You accept this EULA; if You do not accept it, do not install or use
+the Plugin.
+
+This EULA is based on the Standard EULA published by JetBrains for plugins distributed via JetBrains
+Marketplace, adapted for a plugin offered at no cost.
+
+1. Definitions
+
+"Developer" means Prihod, reachable at prihod2004@gmail.com.
+
+"Documentation" means the latest versions of all online technical documentation available for the
+Plugin at JetBrains Marketplace, in the Plugin's public repository at
+https://github.com/modxkit/deployment-airlock, and any other relevant Plugin documentation provided
+either by JetBrains or the Developer that applies to the Plugin, including its text and images.
+
+"JetBrains" means JetBrains s.r.o., which has its registered office at Na Hřebenech II 1718/8, Prague,
+14000, Czech Republic, registered with the Commercial Register kept by the Municipal Court of Prague,
+Section C, file 86211, ID.Nr.: 265 02 275.
+
+"JetBrains Affiliate" means the subsidiary and/or any associated companies of JetBrains.
+
+"JetBrains Marketplace" means any platform operated by JetBrains or a JetBrains Affiliate on which
+JetBrains or a JetBrains Affiliate markets plugins for JetBrains Products, including the website
+https://plugins.jetbrains.com and/or any other website or other platform, whether named JetBrains
+Marketplace, JetBrains Plugins Repository, or otherwise.
+
+"JetBrains Product" means any software program or service made available by JetBrains.
+
+"Plugin" means the Deployment Airlock plugin (plugin ID com.modxkit.airlock) designed to work with
+JetBrains Products, including any updates and upgrades of it, that the Developer makes available under
+this EULA.
+
+"You" means an individual or an entity concluding this EULA.
+
+2. Grant of License
+
+2.1. License. The Plugin is offered at no cost. The Developer hereby grants You a limited, worldwide,
+non-exclusive, non-transferable license to use the Plugin (including any generally available updates
+and upgrades released during Your rightful use of the Plugin) as long as the use is in line with the
+Documentation and the limits set out in this EULA. You may:
+
+   - install the Plugin;
+   - use the Plugin; and
+   - make backup copies of the Plugin for archival purposes.
+
+2.2. Restrictions. You may not modify, reverse-engineer, decompile, or disassemble the Plugin in whole
+or in part, or create any derivative works from the Plugin, or sublicense any rights to the Plugin,
+unless otherwise expressly authorized in writing by the Developer.
+
+2.3. Duration of License. The license granted under this EULA is perpetual.
+
+3. Intellectual Property
+
+The Plugin and the Documentation are protected by copyright and other intellectual property laws and
+treaties. The Developer or its licensors own all title, copyright, and other intellectual property
+rights to the Plugin and the Documentation. All rights not expressly granted in this EULA are
+reserved by the Developer.
+
+4. Disclaimer of Warranty
+
+THE PLUGIN IS PROVIDED TO YOU ON AN "AS-IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES. YOUR USE OF
+THE PLUGIN IS AT YOUR OWN RISK. THE DEVELOPER PROVIDES NO WARRANTY AS TO THE PLUGIN'S USE OR
+PERFORMANCE. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE DEVELOPER DISCLAIMS ALL OTHER
+WARRANTIES AND CONDITIONS, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT, WITH
+REGARD TO THE PLUGIN, AND THE PROVISION OF OR FAILURE TO PROVIDE SUPPORT SERVICES. THE DEVELOPER DOES
+NOT WARRANT THAT THE PLUGIN IS ACCURATE, RELIABLE, OR CORRECT; THAT THE PLUGIN MEETS YOUR
+REQUIREMENTS; THAT THE PLUGIN WILL BE AVAILABLE AT ANY PARTICULAR TIME OR LOCATION, UNINTERRUPTED, OR
+SECURE; THAT ANY DEFECTS OR ERRORS WILL BE CORRECTED; OR THAT THE PLUGIN IS FREE OF VIRUSES OR OTHER
+HARMFUL COMPONENTS. EXCEPT AS REQUIRED BY APPLICABLE LAWS, ANY UPDATES AND UPGRADES TO THE PLUGIN WILL
+ONLY BE PROVIDED ON AN "AS AVAILABLE" BASIS, I.E., AT THE DEVELOPER'S SOLE DISCRETION.
+
+5. Limitation of Liability
+
+IN NO EVENT WILL THE DEVELOPER BE LIABLE FOR ANY DIRECT OR INDIRECT COSTS, LOSSES, OR DAMAGES
+ASSOCIATED WITH THE USE OF THE DEVELOPER'S PLUGIN.
+
+THE DEVELOPER SHALL NOT BE LIABLE TO YOU FOR ANY LOST PROFITS OR CONSEQUENTIAL DAMAGES, NO MATTER THE
+CAUSE OF SAID PROFITS OR DAMAGES, AND IN NO EVENT WILL THE DEVELOPER'S AGGREGATE LIABILITY ARISING OUT
+OF OR RELATED TO THIS EULA OR THE USE OF THE PLUGIN EXCEED THE FEES WHICH YOU PAID FOR THE PLUGIN VIA
+JETBRAINS MARKETPLACE IN THE THREE-MONTH PERIOD PRECEDING THE CLAIM. THIS LIMITATION WILL APPLY EVEN
+IF THE DEVELOPER HAS BEEN ADVISED OF THE POSSIBILITY OF THE LIABILITY EXCEEDING THE AMOUNT AND
+NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY. JETBRAINS' LIABILITY IS
+EXCLUDED IN ITS ENTIRETY AS JETBRAINS IS NOT A PARTY TO THE CONTRACTUAL RELATIONSHIP BETWEEN THE
+DEVELOPER AND YOU.
+
+6. Contact
+
+Questions about this EULA: prihod2004@gmail.com. Bug reports and questions about the Plugin:
+https://github.com/modxkit/deployment-airlock/issues.
+
+Copyright (c) 2026 Prihod. All rights reserved.
