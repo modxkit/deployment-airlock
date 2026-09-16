@@ -4,6 +4,8 @@
 
 ![A protected upload waiting for confirmation in PhpStorm](docs/guide/img/confirm-upload.png)
 
+**[Get it on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock)** — free, for PhpStorm and WebStorm 2026.2+.
+
 <!-- Plugin description -->
 Guarded deployment for AI coding agents via the built-in JetBrains MCP server.
 
@@ -72,11 +74,12 @@ More: [protected servers](docs/guide/how-it-works.md#protected-servers),
 
 ## Quick start
 
-1. [Turn on the IDE's MCP server](docs/guide/setup.md#turn-on-the-ides-mcp-server) in **Settings | Tools | MCP Server**; it is off by default.
-2. [Set up a deployment server](docs/guide/setup.md#set-up-a-deployment-server) with mappings that cover the project, if there is none yet.
-3. [Connect your client](docs/guide/setup.md#connect-your-client): press **Auto-Configure** next to it, then restart the client.
-4. [Tell the agent](docs/guide/setup.md#tell-the-agent) that Airlock is the way to deploy, in the project's `AGENTS.md` or `CLAUDE.md`.
-5. [Allow staging for the terminal](docs/guide/how-it-works.md#protected-servers): on the first upload to staging, tick the host checkbox in the IDE dialog. Never tick it for production.
+1. [Install Deployment Airlock](https://plugins.jetbrains.com/plugin/34261-deployment-airlock) from the JetBrains Marketplace: **Settings | Plugins | Marketplace**, search for "Deployment Airlock".
+2. [Turn on the IDE's MCP server](docs/guide/setup.md#turn-on-the-ides-mcp-server) in **Settings | Tools | MCP Server**; it is off by default.
+3. [Set up a deployment server](docs/guide/setup.md#set-up-a-deployment-server) with mappings that cover the project, if there is none yet.
+4. [Connect your client](docs/guide/setup.md#connect-your-client): press **Auto-Configure** next to it, then restart the client.
+5. [Tell the agent](docs/guide/setup.md#tell-the-agent) that Airlock is the way to deploy, in the project's `AGENTS.md` or `CLAUDE.md`.
+6. [Allow staging for the terminal](docs/guide/how-it-works.md#protected-servers): on the first upload to staging, tick the host checkbox in the IDE dialog. Never tick it for production.
 
 ## Gallery
 
@@ -100,7 +103,7 @@ More: [protected servers](docs/guide/how-it-works.md#protected-servers),
 
 ## Status
 
-Not yet released. The plugin is free; its source code is closed on purpose, and this repository
+Version 1.0.0 is released on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock). The plugin is free; its source code is closed on purpose, and this repository
 holds the documentation and the issue tracker.
 
 All six tools — four for uploading, two for downloading — the offline plan with TTL / single-use /
@@ -116,9 +119,6 @@ Kotlin class implementing `StatusBarWidget` gets.
 
 WebStorm is verified by the Plugin Verifier only. Both bundled plugins Airlock depends on ship with
 it, but the UI and integration suites run in PhpStorm.
-
-Not done yet: the release itself. Version `1.0.0` is prepared but not yet published; before it goes
-to the JetBrains Marketplace, the plugin is being tried on real projects.
 
 ## Reporting a problem
 

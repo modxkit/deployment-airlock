@@ -10,10 +10,11 @@ through them in that order and ends with what to check when something does not w
 ## Install the plugin
 
 From the JetBrains Marketplace: **Settings | Plugins | Marketplace**, search for
-"Deployment Airlock", install, and restart the IDE when asked.
+"Deployment Airlock", install, and restart the IDE when asked. The plugin's page:
+[plugins.jetbrains.com/plugin/34261-deployment-airlock](https://plugins.jetbrains.com/plugin/34261-deployment-airlock).
 
-Until the plugin is released on the Marketplace, install it from the built zip file:
-**Settings | Plugins**, the gear menu, **Install Plugin from Disk**.
+Without access to the Marketplace from the IDE, download the zip file from the **Versions** tab of
+that page and install it with **Settings | Plugins**, the gear menu, **Install Plugin from Disk**.
 
 Requirements:
 
