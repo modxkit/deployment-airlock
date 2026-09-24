@@ -121,7 +121,9 @@ Tools**:
   mode on, router-only tools — and every tool starts as router-only — drop out of the tool list and
   are reachable only through the IDE's `execute_tool`; an agent finds `deployment_*` there only if
   its instructions name them. Unticking Router-only on the **Deployment** group keeps all six
-  visible directly.
+  visible directly, with their descriptions — through `execute_tool` the agent never sees those.
+  If you keep them behind the router, the [agent instructions template](#tell-the-agent) tells the
+  agent how to call them there.
 
 ![Exposed Tools page with the Deployment group expanded and all six deployment tools enabled](img/mcp-exposed-tools.png)
 

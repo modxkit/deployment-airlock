@@ -17,7 +17,12 @@ built-in MCP server. They are the only way to move files between this project an
 - The IDE's other MCP tools are not a way to deploy either: do not run an upload action
   (`PublishGroup.*`) through `invoke_ide_action`, and do not deploy through
   `execute_terminal_command` or a run configuration.
-- If the `deployment_*` tools are not available, say so and stop. Do not deploy another way.
+- If the `deployment_*` tools are not in your tool list but the IDE's `execute_tool` is, the IDE
+  runs in router-only mode: call them through it, one command string per call —
+  `deployment_plan --scope files --files '["src/Cart.php"]'`. Write every argument as `--name
+  value`: a form like `--server=prod` is dropped without an error, so check `server` in the plan
+  before you execute it. Lists are passed as JSON.
+- If the `deployment_*` tools are not available at all, say so and stop. Do not deploy another way.
 
 ### Uploading
 
