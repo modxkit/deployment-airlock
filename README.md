@@ -103,7 +103,7 @@ More: [protected servers](docs/guide/how-it-works.md#protected-servers),
 
 ## Status
 
-Version 1.0.0 is released on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock). The plugin is free; its source code is closed on purpose, and this repository
+Version 1.0.1 is released on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock). The plugin is free; its source code is closed on purpose, and this repository
 holds the documentation and the issue tracker.
 
 All six tools — four for uploading, two for downloading — the offline plan with TTL / single-use /
