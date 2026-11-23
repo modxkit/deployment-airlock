@@ -1,8 +1,57 @@
 # Changelog
 
-## [1.0.1] - 2026-09-25
+## [1.1.0] - 2026-11-24
 
 <!-- Change notes -->
+- Exclusion presets: named lists of paths to keep off the server — the instruction files of AI
+  agents (`CLAUDE.md`, `AGENTS.md`, `.claude`, `.cursor` and others) and the development files of
+  Laravel, MODX, Symfony, WordPress, Node / frontend and Python projects, or lists of your own.
+  Apply a preset on the project's Project Rules page, and Airlock keeps its entries in Deployment |
+  Excluded Paths of every server of the project, including servers added later and files that
+  appear later. Before anything is written you see what will be added or removed. Presets are
+  edited in Settings | Tools | Deployment Airlock | Exclusion Presets; Save Server Exclusions as
+  Preset… in the Project view menu turns a server's current exclusions into a preset.
+- After Airlock uploads files, the IDE's automatic upload on explicit save action no longer sends
+  the same files again. A file edited after the transfer is uploaded as usual. Each skipped file
+  is recorded in the audit log; a notification is optional.
+- `deployment_status` can wait up to 60 seconds for the status to change, so the agent no longer
+  gives up while a confirmation dialog is open or a long transfer is running.
+- A path excluded with Exclude from Deployment no longer keeps uploading on save until the project
+  is reopened.
+<!-- Change notes end -->
+
+### Added
+
+- Exclusion presets (`docs/spec.md` §25): IDE-level `settings/ExclusionPresetStore` with seven
+  built-in presets (`options/deployment-airlock-presets.xml` keeps only what differs from them);
+  project bindings and their ledger in `workspace.xml` (`settings/ExclusionPresetBindings`);
+  `presets/ExclusionPresetService` with `PresetPlanner`, `PlanApplier`, `RemovalTracker`,
+  `HeldSerialRunner` and `PresetFileWatcher`. Background writes only add entries, wait until modal
+  dialogs and the project's Settings window are closed, and never bring back an entry a person
+  removed. Pages: Exclusion Presets (IDE level) and the preset table on Project Rules; the action
+  Save Server Exclusions as Preset….
+- Auto-upload echo suppression (`docs/spec.md` §24): `core/EchoSuppression`,
+  `adapter/EchoMuteFilter`, `adapter/EchoMuteRegistration`, `adapter/EchoReporter`. Options
+  `suppressUploadEcho` (on by default) and `notifyEchoSuppressed` (off) at both levels, the project
+  level may override the IDE in either direction; audit event `autoUploadSkipped`. Applies to the
+  auto-upload mode On explicit save action only.
+- `deployment_status`: optional `waitSeconds` (clamped to 0–60) returns as soon as the status
+  changes, or at once for a finished operation (`docs/spec.md` §8).
+
+### Changed
+
+- Tool descriptions and `docs/AGENTS.template.md`: `running` straight from `deployment_execute`
+  means the upload is already approved, so the agent does not ask for confirmation again.
+- Kotlin 2.4.21, IntelliJ Platform Gradle Plugin 2.20.1.
+
+### Fixed
+
+- Exclude from Deployment publishes `excludedPathsChanged` after the write, as the platform's own
+  action does. Auto-upload works on a copy of the deployment configuration refreshed only by that
+  event, so an excluded path kept uploading on save until the project was reopened.
+
+## [1.0.1] - 2026-09-25
+
 - When a confirmation dialog opens while the IDE is in the background — typically while you are
   working in the agent's terminal — the IDE's icon in the Dock or taskbar asks for attention until
   you switch to it, and a system notification names the server and the number of files. Before,
@@ -11,7 +60,6 @@
 - The IDE-level settings page no longer scrolls sideways in a narrow Settings window: the label of
   the list of hosts confirmed in the agent's terminal now sits above the list.
 - Checked against PhpStorm 2026.3.
-<!-- Change notes end -->
 
 ### Added
 

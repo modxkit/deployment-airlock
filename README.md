@@ -29,23 +29,29 @@ sees SSH keys, passwords or tokens, and no separate SFTP client is involved.
   ask** the plan, the allowed paths, the file limit, the content fingerprints and the audit log still
   apply; only the confirmation is dropped.
 - The agent can be limited to certain servers and certain directories of the project.
+- Exclusion presets keep files that have no business on a server off it: the instruction files of AI
+  agents (`CLAUDE.md`, `AGENTS.md`, `.claude`, `.cursor` and others) and the development files of
+  Laravel, MODX, Symfony, WordPress, Node / frontend and Python projects, or lists of your own. An
+  applied preset is kept in the Excluded Paths of every server of the project, including servers
+  added later, and you see what will be added or removed before anything is written.
 - Downloading from the server is off by default; uncommitted local work is never overwritten
   without a question, and `.idea`, `.git`, `.claude` and agent instruction files such as `CLAUDE.md`
   and `AGENTS.md` are never a download target.
 - One operation per server at a time, and every transfer is written to an audit log.
 - What it does not control is named: the IDE's own automatic upload and other MCP tools that can
-  reach a server.
+  reach a server. On explicit save action, the automatic upload no longer sends again the files
+  Airlock has just uploaded.
 
 ## MCP tools
 
-| Tool                        | What it does                                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deployment_servers`        | Deployment servers configured for the project. Never credentials.                                                                                          |
-| `deployment_plan`           | Immutable, expiring plan of local → remote paths. **Built entirely offline** — no connection, no credentials, nothing touched on the server.               |
-| `deployment_execute`        | Uploads a plan, after the user confirms it. The caller cannot set confirmation.                                                                            |
-| `deployment_status`         | State of a running operation — including which of the skipped files the IDE itself explained, and what that means for the copies on disk.                  |
-| `deployment_remote_changes` | What changed **on the server**: compares the server's tree with the project and returns the comparison, which is itself the download plan. Off by default. |
-| `deployment_pull`           | Downloads a plan built by `deployment_remote_changes`, after the user confirms it. Off by default.                                                         |
+| Tool                        | What it does                                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployment_servers`        | Deployment servers configured for the project. Never credentials.                                                                                                                     |
+| `deployment_plan`           | Immutable, expiring plan of local → remote paths. **Built entirely offline** — no connection, no credentials, nothing touched on the server.                                          |
+| `deployment_execute`        | Uploads a plan, after the user confirms it. The caller cannot set confirmation.                                                                                                       |
+| `deployment_status`         | State of a running operation — including which of the skipped files the IDE itself explained, and what that means for the copies on disk. Can wait up to 60 seconds for it to change. |
+| `deployment_remote_changes` | What changed **on the server**: compares the server's tree with the project and returns the comparison, which is itself the download plan. Off by default.                            |
+| `deployment_pull`           | Downloads a plan built by `deployment_remote_changes`, after the user confirms it. Off by default.                                                                                    |
 
 <!-- Plugin description end -->
 
@@ -103,19 +109,20 @@ More: [protected servers](docs/guide/how-it-works.md#protected-servers),
 
 ## Status
 
-Version 1.0.1 is released on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock). The plugin is free; its source code is closed on purpose, and this repository
+Version 1.1.0 is released on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34261-deployment-airlock). The plugin is free; its source code is closed on purpose, and this repository
 holds the documentation and the issue tracker.
 
 All six tools — four for uploading, two for downloading — the offline plan with TTL / single-use /
-content fingerprint, both confirmation channels, the trust modes, the path zone, settings on two
-levels and the audit log are in place.
+content fingerprint, both confirmation channels, the trust modes, the path zone, exclusion presets,
+settings on two levels and the audit log are in place.
 
 Verified: the unit suite is green; a UI suite runs against a live PhpStorm sandbox over Remote
 Robot; an opt-in integration suite runs the transfer path against a real SFTP server; the manual
 sandbox checklist — including the part no machine can check — has been walked through by a human;
-and the Plugin Verifier reports `Compatible` against `PS-262.10315.130`, `PS-263.4732.41` and
-`WS-262.10315.144` (WebStorm 2026.2.2). Its only notes are two deprecated-API usages that any
-Kotlin class implementing `StatusBarWidget` gets.
+and for 1.1.0 the Plugin Verifier reports `Compatible` against `PS-262.8665.265`, `PS-262.12573.41`
+(PhpStorm 2026.2.5), `PS-263.8311.42` and `IU-263.8311.30` (2026.3.1); WebStorm was last checked
+with 1.0.x, against `WS-262.10315.144` (WebStorm 2026.2.2). Its only notes are two deprecated-API
+usages that any Kotlin class implementing `StatusBarWidget` gets.
 
 WebStorm is verified by the Plugin Verifier only. Both bundled plugins Airlock depends on ship with
 it, but the UI and integration suites run in PhpStorm.

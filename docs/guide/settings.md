@@ -8,7 +8,7 @@ Settings live at the IDE level (**Settings | Tools | Deployment Airlock**) and a
 The split is forced, not a convenience. The project's settings file sits inside the project, and
 the platform picks up external edits to it — so every weakening a project file can express is a
 weakening the agent can grant itself. The effective policy is therefore `strictest(app, project)`,
-merged field by field, and the project level can only tighten.
+merged field by field, and the project level can only tighten (the one exception is [Auto-upload echo](#auto-upload-echo), where no value weakens the barrier).
 
 This page lists every setting in the order the pages show them. For each one: the label as it
 appears in the IDE, then its default, its range, the pages it is on and how the two levels merge.
@@ -152,6 +152,36 @@ When off, a download asks only about files with uncommitted changes, and a plan 
 does not have yet arrives silently. When on, every download asks first, and the setting above stops
 changing anything. A project may switch it on, and cannot switch off what the IDE level switched on.
 
+## Auto-upload echo
+
+Applies to the auto-upload mode **On explicit save action**. In **Always** the IDE uploads a change
+the moment it sees it, before Airlock can act, so these options have no effect there.
+
+After Airlock uploads files, the IDE's own auto-upload would send the same files again
+on the next save: it queues every change and knows nothing about what Airlock did. These options stop
+exactly that repeat. A file is skipped only when Airlock knows its current bytes are already on every
+server auto-upload targets; a file edited after the transfer is uploaded as before. Each skip is
+written to the audit log as `autoUploadSkipped`. Airlock does not otherwise touch auto-upload, and
+the warning about it stays. The memory lasts while the project is open and is cleared by any change
+to the deployment configuration. With Airlock switched off nothing is skipped. Files Airlock
+downloads are not sent back in any mode: the IDE itself skips the files of its own transfers.
+
+**Skip auto-upload of files Airlock already uploaded**\
+Default: on · Pages: both · Merge: the project overrides the IDE (project: As in IDE / On / Off)
+
+A file whose bytes Airlock just put on the target is not uploaded again on save.
+
+**Notify when an auto-upload is skipped**\
+Default: off · Pages: both · Merge: the project overrides the IDE (project: As in IDE / On / Off)
+
+Off by default: after agent work every save would show a balloon.
+
+**Unlike every other setting here, the project may relax these as well as tighten them.** No value
+weakens the barrier: with the option on, only what is already on the same servers with the same
+content is skipped; with it off, the repeat returns, and nothing new is sent either way. An agent
+gains nothing by rewriting the field. On Project Rules each option is a choice of **As in IDE (On)**
+or **As in IDE (Off)** (showing the IDE value), **On**, **Off**; the IDE page has plain checkboxes.
+
 ## Trust
 
 **Trust mode:**\
@@ -189,10 +219,96 @@ Both pages in full, the IDE level first:
 
 ![Full Project Rules page, all groups](img/settings-project-full.png)
 
+## Exclusion presets
+
+A preset is a named list of path patterns for **Deployment | Excluded Paths**, set up once at the IDE
+level and bound to a project. While it is bound, Airlock keeps its entries in the excluded paths of
+every server of the project, including servers added later and files that appear later. A preset adds
+exclusions; only your own action in the settings removes them, so a preset cannot let anything new leave the
+machine on its own. Built-in presets: **AI agents**,
+**Laravel**, **MODX**, **Symfony**, **WordPress**, **Node / frontend**, **Python**. Review what a
+preset holds before you bind it.
+
+**Settings | Tools | Deployment Airlock | Exclusion Presets** (IDE level) edits the presets. The list
+marks **built-in**, **modified** and **hidden** ones. Its toolbar has **+** (New…), **−** (Delete,
+your own presets only), the pencil (Rename…), **Clone…**, **Hide** / **Show** (built-in ones can be
+hidden, not deleted) and **Reset to Default** (a modified built-in one). The entries of the selected
+preset are in the **Entries:** table, one entry per row. Its toolbar has **+** (a new row after the
+selected one, or at the end when nothing is selected, ready to type in), **−** (the selected rows), up and down (the order is kept) and **Paste List…**, which takes
+a list of lines and adds them after the existing entries; spaces around a line are removed and empty
+lines are skipped. A bad entry is shown in red with the reason in its tooltip and in the **Line N: …**
+list under the table (N is the row number); it is skipped, the rest of the preset still works.
+Comment rows (`#`) are shown in grey. Unmodified built-in presets follow plugin updates.
+
+![Exclusion Presets page: the list of built-in presets with AI agents selected, and its entries below](img/exclusion-presets.png)
+
+**Entry syntax.** A path from the project root with `/`. A segment is a name (`docs`, `CLAUDE.md`), a
+glob (`*`, `?`, for example `.aider*`), `**` for any depth (`**/CLAUDE.md`), or `re:<regex>` matched
+against the whole name (`re:\.php-cs-fixer(\.dist)?\.php`). `{projectName}` and `{projectNameLower}`
+work inside a name. Lines starting with `#` are comments. Write paths without `./` and with `/` only:
+a `.` segment or a `\` outside `re:` is flagged as an error, because the platform would never match
+such an entry. Case follows the platform: where the file
+system ignores case (macOS by default), `Tests` and `tests` are the same entry. An entry without
+wildcards is written even if the file does not exist yet; an entry with wildcards is expanded into
+the paths that exist and then watched for new matches.
+
+**Project Rules | Exclusion presets** (project level) is a table of the presets: **Preset** (with
+**built-in** and **modified** marks), **Status** and a button in each row. A preset that is not applied
+shows **Not applied** and **Apply**; an applied one shows **Applied · N entries** and **Remove**, where N
+is the number of entries the preset keeps in the excluded paths, summed over the project's servers (an
+entry two presets share counts for both; one path on two servers counts twice). **Apply** opens a
+preview, per server, of what will be added (an entry you removed from that server earlier is marked
+**(you removed this earlier)**: applying brings it back); **Remove** opens a preview of what will be
+removed. After you confirm, the row says **Will be applied after Settings close** or **Will be removed
+after Settings close**, and its button offers the opposite action, so you can change your mind before
+closing Settings. **Apply** and **Remove** above the table act on every selected row (Shift or ⌘/Ctrl
+to select several): one preview for all of them, one confirmation, and each entry is marked with the
+preset it belongs to. Rows the action does not fit are skipped. Binding is stored in `workspace.xml`,
+per user, not in version control.
+
+**Save Server Exclusions as Preset…** (the button under the table, and an item in the Project view
+context menu) turns the excluded paths of one project server into a new preset; entries outside
+the project or on the remote side are skipped and counted.
+
+How it behaves:
+
+- **An entry you removed stays removed.** If you delete an entry a preset added, from the IDE's
+  Deployment dialog or with **Include in Deployment**, no preset adds it back to that server until you
+  bind a preset again and approve it in the preview. The same holds for an entry you had added by hand
+  that a bound preset also wants: once you remove it, the preset does not add it back.
+- **Paths beneath a removed folder entry stay excluded.** If you remove an entry such as `.claude` that
+  covered paths of a bound preset (`.claude/settings.local.json`, a `CLAUDE.md` inside it), Airlock adds
+  those paths to that server's exclusions right away, once Settings are closed. The entry you removed
+  is not added back, and neither is a path beneath it that you had removed earlier.
+- **Only a person's action removes entries**: **Remove** in the table, or editing a preset while the
+  project is open. Entries you added by hand are never removed, and an entry another bound preset needs stays.
+  Opening a project only adds. A preset edited while the project was closed leaves the entries of its
+  removed lines in place: reopening the project does not remove them, editing that preset again with
+  the project open does.
+- **A bound preset that is no longer available in this IDE** (hidden or deleted) stays in the table as
+  **Not available in this IDE** with a **Forget** button; the toolbar does not act on it. Forget only
+  drops the binding: the entries stay on the servers and become manual, so no preset owns them. If
+  the preset was shown again on the Exclusion Presets page in the meantime, Forget refuses and asks
+  you to use **Remove**, which shows what will be removed.
+- **Writes happen after Settings closes**, even if you close it with Cancel: the Deployment page in
+  the same dialog rewrites all excluded paths when you press OK and would erase them. Confirmed
+  changes show a note about this, and the table marks them as pending. Settings can stay open next to the editor, so this covers every
+  write of a preset, not only the ones you confirm: new matching files, a new server and an edited
+  preset are written once no Settings window of the project is open.
+- **Watching covers new files and folders** that the IDE sees (created, copied, moved, renamed) under
+  the project root; directories already excluded on every server are not walked, symlinks are not
+  followed, and files created outside the IDE appear when the IDE notices them.
+- **Automatic upload set to Always can win the race**: a new file matching a pattern may be uploaded
+  before its exclusion is written. Entries without wildcards are safe, they are in the list in advance.
+- Only the project's own servers are changed, and only the local half of their lists. Agents cannot
+  change presets through Airlock: like the Project view items, this is a person's setting, and it is
+  not written to the audit log.
+
 ## Files and the audit log
 
 - IDE-level settings: `options/deployment-airlock-app.xml` in the IDE's configuration directory.
 - Project settings: `.idea/deployment-airlock.xml` in the project.
+- Exclusion presets: `options/deployment-airlock-presets.xml` in the IDE's configuration directory (only what differs from the built-in ones). Which presets a project uses: `workspace.xml`, per user.
 - Audit log: `modxkit-airlock/audit-<project>-<yyyy-MM-dd>.jsonl` in the IDE's log directory — open
   it with **Help | Show Log in Finder** (**Show Log in Explorer** on Windows). One JSON line per
   event, one file per day (UTC); files older than **Keep the audit log, days:** are deleted.

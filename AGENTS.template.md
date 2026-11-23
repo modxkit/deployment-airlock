@@ -32,8 +32,19 @@ built-in MCP server. They are the only way to move files between this project an
    plan contains, including its `warnings`.
 3. `deployment_execute` with the `planId`. The user confirms, in your terminal or in an IDE dialog;
    you cannot confirm for them.
-4. `deployment_status` with the `operationId` until the status is `success`, `failed`, `declined`
-   or `cancelled`. Report what was uploaded, what was skipped, and the `warnings`.
+   - `running` straight from this call means the upload is already approved: the user answered the
+     form in your terminal, or trusted this server for the session, or turned confirmation off. Do
+     not ask them to confirm, and do not ask again for later uploads to that server in this
+     session — while the trust lasts, each new `deployment_execute` returns `running` again.
+   - `waiting_confirmation` means an IDE dialog is open. Go to step 4; do not ask the user in chat
+     whether they confirmed.
+4. `deployment_status` with the `operationId` and `waitSeconds: 60`, again and again until the
+   status is `success`, `failed`, `declined` or `cancelled`. Each call waits up to 60 seconds for
+   the user's answer or for the transfer, and returns at once when something changes. Do not ask
+   the user whether they confirmed or whether the transfer has finished — the status tells you. If
+   the status is still `waiting_confirmation` after several minutes, tell the user once that the
+   dialog is waiting in the IDE, and keep waiting. Report what was uploaded, what was skipped, and
+   the `warnings`.
 
 ### Downloading from the server
 
@@ -42,7 +53,9 @@ For files created or changed on the server — for example by a code generator t
 1. `deployment_remote_changes` — what differs between the server and the project; the answer is
    itself the download plan. Files are compared by size; pass `verify: true` when a change that
    keeps a file's length matters.
-2. `deployment_pull` with that `planId`, then `deployment_status` as above.
+2. `deployment_pull` with that `planId`, then `deployment_status` with `waitSeconds: 60` as above.
+   `running` straight from `deployment_pull` means nobody will be asked; `waiting_confirmation`
+   means the user is deciding about files with uncommitted changes.
 
 Downloading is off unless the user turned it on; `PULL_DISABLED` means exactly that.
 
