@@ -258,8 +258,9 @@ shows **Not applied** and **Apply**; an applied one shows **Applied · N entries
 is the number of entries the preset keeps in the excluded paths, summed over the project's servers (an
 entry two presets share counts for both; one path on two servers counts twice). **Apply** opens a
 preview, per server, of what will be added (an entry you removed from that server earlier is marked
-**(you removed this earlier)**: applying brings it back); **Remove** opens a preview of what will be
-removed. After you confirm, the row says **Will be applied after Settings close** or **Will be removed
+**(you removed this earlier)**: applying brings it back); when the project has no deployment server
+yet, the preview lists what a server will get once it appears. **Remove** opens a preview of what will
+be removed. After you confirm, the row says **Will be applied after Settings close** or **Will be removed
 after Settings close**, and its button offers the opposite action, so you can change your mind before
 closing Settings. **Apply** and **Remove** above the table act on every selected row (Shift or ⌘/Ctrl
 to select several): one preview for all of them, one confirmation, and each entry is marked with the
@@ -300,7 +301,11 @@ How it behaves:
   followed, and files created outside the IDE appear when the IDE notices them.
 - **Automatic upload set to Always can win the race**: a new file matching a pattern may be uploaded
   before its exclusion is written. Entries without wildcards are safe, they are in the list in advance.
-- Only the project's own servers are changed, and only the local half of their lists. Agents cannot
+- Only the project's servers are changed, and only the local half of their lists. The project's
+  servers are the ones defined in the project, IDE-level servers with mappings or excluded paths
+  saved in the project's `.idea/deployment.xml`, and the default server or every server of the default group;
+  other IDE-level servers are left alone. Excluded paths of any server, IDE-level ones included, are
+  kept in the project's own `.idea/deployment.xml`, so another project is not affected. Agents cannot
   change presets through Airlock: like the Project view items, this is a person's setting, and it is
   not written to the audit log.
 

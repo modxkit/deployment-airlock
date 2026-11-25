@@ -201,10 +201,12 @@ upload by ⌘S included. Marking a directory **Excluded** through **Mark Directo
 here: the upload path never looks at the project model, only at that list.
 
 The first item writes to the project's default deployment server (every member, if the default is a
-group); the second writes to every server configured in the project — servers shared at the IDE
-level, with other projects, are left alone. The second item appears only when it would do something
-the first does not: with a single project server that is also the default, both would write to the
-same list, so only the first is offered. Clicking again removes the entry; when a path is covered
+group); the second writes to every server of the project: the servers configured in the project,
+IDE-level servers with mappings or excluded paths saved in the project's `.idea/deployment.xml`, and
+the default ones. Other IDE-level servers are left alone. Excluded paths of any server, IDE-level ones
+included, are kept in the project's own `.idea/deployment.xml`, so another project is not affected.
+The second item appears only when it would do something the first does not: when the project uses
+no server besides the default one, both would write to the same list, so only the first is offered. Clicking again removes the entry; when a path is covered
 only by an exclusion on a parent folder, the item is disabled and names the parent. This is the one
 place Airlock writes to the native deployment settings, and it writes exactly one field: no MCP tool
 exposes it, so an agent cannot use it either — it is a human action from the Project view menu.

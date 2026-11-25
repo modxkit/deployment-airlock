@@ -1,8 +1,36 @@
 # Changelog
 
-## [1.1.0] - 2026-11-24
+## [1.1.1] - 2026-11-24
 
 <!-- Change notes -->
+- Exclusion presets now work in projects whose deployment servers are defined at the IDE level
+  rather than in the project. Before, nothing was written there, and Apply said the project had no
+  deployment servers. A preset now covers the servers defined in the project, the default server
+  and IDE-level servers that have mappings or excluded paths in this project; other IDE-level
+  servers are left alone. Exclude from Deployment …on All Servers uses the same servers.
+- When the default server changes, applied presets are written to the new one.
+- In a project with no deployment server yet, Apply lists what a server will get once it appears
+  instead of an empty list.
+<!-- Change notes end -->
+
+### Fixed
+
+- The project's servers for exclusion presets and Exclude from Deployment …on All Servers
+  (`docs/spec.md` §23, §25) were the project-level servers only, while excluded paths of every
+  server, IDE-level ones included, live in the project's own `.idea/deployment.xml`. They are now
+  the project-level servers, IDE-level servers whose data in this project the platform would save
+  (`RawServer.hasProjectData`, `DeploymentExclusions.hasSavedServerData` — the platform's own
+  `PublishConfig$State.isEffectivelyEmpty` rule), and the default server or every member of the
+  default group. Not "has `ServerData`": the platform's usage statistics
+  (`DeploymentServersUsagesCollector`) seed empty data for every server in memory.
+- `DEPLOYMENT_CONFIG` events also ask for a server check, so a new default server gets the applied
+  presets; the service's own writes do not change the set and are filtered before any progress.
+- The Apply preview with no servers runs the bind plan against an imagined empty server
+  (`ExclusionPresetService.previewWithoutServers`); a server name hidden by a group of the same
+  name is no longer reported as no servers.
+
+## [1.1.0] - 2026-11-24
+
 - Exclusion presets: named lists of paths to keep off the server — the instruction files of AI
   agents (`CLAUDE.md`, `AGENTS.md`, `.claude`, `.cursor` and others) and the development files of
   Laravel, MODX, Symfony, WordPress, Node / frontend and Python projects, or lists of your own.
@@ -18,7 +46,6 @@
   gives up while a confirmation dialog is open or a long transfer is running.
 - A path excluded with Exclude from Deployment no longer keeps uploading on save until the project
   is reopened.
-<!-- Change notes end -->
 
 ### Added
 
